@@ -1,9 +1,13 @@
 import numpy as numpy
+from numpy import savetxt
 import os
 from sklearn.feature_selection import SelectKBest, chi2, f_classif
 from sklearn.model_selection import train_test_split, RepeatedStratifiedKFold
 from sklearn.neural_network import MLPClassifier
 from sklearn.metrics import accuracy_score, confusion_matrix
+import csv
+from scipy.stats import ttest_ind
+from tabulate import tabulate
 
 
 def load_data(data_path):
@@ -49,29 +53,98 @@ def experimental_loop():
     momentum_list = [0, 0.9]
 
     rskf = RepeatedStratifiedKFold(n_splits=2, n_repeats=5, random_state=3232)
+    with open('MPLClassification.csv', mode='w') as csv_file:
+        fieldnames = ['layer_size', 'momentum', 'number_of_features', 'mean_score', 'std_score']
+        writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
 
-    for number_of_features in range(1, 59):
-        for layer_size in layer_sizes:
-            for momentum in momentum_list:
+        writer.writeheader()
 
-                clf = MLPClassifier(hidden_layer_sizes=layer_size, solver='sgd', max_iter=800, batch_size=100,
-                                    momentum=momentum, tol=1e-6, n_iter_no_change=20)
+        result_scores = numpy.zeros((6, 59, 10))
 
-                scores = []
+        for number_of_features in range(1, 60):
+            for layer_size_id, layer_size in enumerate(layer_sizes):
+                for momentum_id, momentum in enumerate(momentum_list):
 
-                for train_index, test_index in rskf.split(X[:, 1:number_of_features], Y):
-                    X_train, X_test = X[train_index], X[test_index]
-                    Y_train, Y_test = Y[train_index], Y[test_index]
+                    clf = MLPClassifier(hidden_layer_sizes=layer_size, solver='sgd', max_iter=800, batch_size=100,
+                                        momentum=momentum, tol=1e-6, n_iter_no_change=20)
 
-                    clf.fit(X_train, Y_train)
+                    scores = []
 
-                    predict = clf.predict(X_test)
-                    scores.append(accuracy_score(Y_test, predict))
+                    for fold_id, (train_index, test_index) in enumerate(rskf.split(X[:, 1:number_of_features], Y)):
+                        X_train, X_test = X[train_index], X[test_index]
+                        Y_train, Y_test = Y[train_index], Y[test_index]
 
-                mean_score = numpy.mean(scores)
-                std_score = numpy.std(scores)
+                        clf.fit(X_train, Y_train)
 
-                print(str(layer_size) + "      " + str(momentum) + "      " + str(number_of_features) + "       " + str(mean_score) + " +- " + str(std_score))
+                        predict = clf.predict(X_test)
+                        scores.append(accuracy_score(Y_test, predict))
+
+                        result_scores[layer_size_id * 2 + momentum_id, number_of_features - 1, fold_id] = scores[
+                            fold_id]
+
+                    mean_score = numpy.mean(scores)
+                    std_score = numpy.std(scores)
+
+                    writer.writerow({'layer_size': str(layer_size), 'momentum': str(momentum),
+                                     'number_of_features': str(number_of_features), 'mean_score': str(mean_score),
+                                     'std_score': str(std_score)})
+                    print(str(layer_size) + "      " + str(momentum) + "      " + str(
+                        number_of_features) + "       " + str(
+                        mean_score) + " +- " + str(std_score))
+    numpy.save('results', result_scores)
 
 
-experimental_loop()
+def ttest_results():
+    scores = numpy.load('results.npy')
+    for index in range(6):
+        savetxt('results{}.csv'.format(index), scores[index], delimiter=',')
+
+    best_classifier_results = numpy.zeros((6, 10))
+    for index in range(6):
+        mean_score = 0.
+        for number_of_features in range(59):
+            if mean_score < numpy.mean(scores[index, number_of_features]):
+                mean_score = numpy.mean(scores[index, number_of_features])
+                best_classifier_results[index] = scores[index, number_of_features]
+
+    alfa = .05
+    t_statistic = numpy.zeros((6, 6))
+    p_value = numpy.zeros((6, 6))
+
+    for i in range(6):
+        for j in range(6):
+            t_statistic[i, j], p_value[i, j] = ttest_ind(best_classifier_results[i], best_classifier_results[j])
+
+    headers = ["NoMom50", "Mom50", "NoMom200", "Mom200", "NoMom400", "Mom400"]
+    names_column = numpy.array([["NoMom50"], ["Mom50"], ["NoMom200"], ["Mom200"], ["NoMom400"], ["Mom400"]])
+    t_statistic_table = numpy.concatenate((names_column, t_statistic), axis=1)
+    t_statistic_table = tabulate(t_statistic_table, headers, floatfmt=".2f")
+    p_value_table = numpy.concatenate((names_column, p_value), axis=1)
+    p_value_table = tabulate(p_value_table, headers, floatfmt=".2f")
+    print("t-statistic:\n", t_statistic_table, "\n\np-value:\n", p_value_table)
+
+    advantage = numpy.zeros((6, 6))
+    advantage[t_statistic > 0] = 1
+    advantage_table = tabulate(numpy.concatenate(
+        (names_column, advantage), axis=1), headers)
+    print("Advantage:\n", advantage_table)
+
+    significance = numpy.zeros((6, 6))
+    significance[p_value <= alfa] = 1
+    significance_table = tabulate(numpy.concatenate(
+        (names_column, significance), axis=1), headers)
+    print("Statistical significance (alpha = 0.05):\n", significance_table)
+
+    stat_better = significance * advantage
+    stat_better_table = tabulate(numpy.concatenate(
+        (names_column, stat_better), axis=1), headers)
+    print("Statistically significantly better:\n", stat_better_table)
+
+
+def save_classifier_results(scores):
+    for index in range(6):
+        savetxt('results{}.csv'.format(index), scores[index], delimiter=',')
+
+
+# experimental_loop()
+ttest_results()
