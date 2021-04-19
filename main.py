@@ -146,5 +146,5 @@ def save_classifier_results(scores):
         savetxt('results{}.csv'.format(index), scores[index], delimiter=',')
 
 
-# experimental_loop()
+experimental_loop()
 ttest_results()
