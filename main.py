@@ -49,7 +49,7 @@ def experimental_loop():
     X, Y = load_data('./dane')
     X, Y = get_k_best_features(X, Y, 59)
 
-    layer_sizes = [50, 200, 400]
+    layer_sizes = [50, 300, 600]
     momentum_list = [0, 0.9]
 
     rskf = RepeatedStratifiedKFold(n_splits=2, n_repeats=5, random_state=3232)
@@ -65,8 +65,8 @@ def experimental_loop():
             for layer_size_id, layer_size in enumerate(layer_sizes):
                 for momentum_id, momentum in enumerate(momentum_list):
 
-                    clf = MLPClassifier(hidden_layer_sizes=layer_size, solver='sgd', max_iter=800, batch_size=100,
-                                        momentum=momentum, tol=1e-6, n_iter_no_change=20)
+                    clf = MLPClassifier(hidden_layer_sizes=layer_size, solver='sgd', max_iter=600,
+                                        momentum=momentum)
 
                     scores = []
 
@@ -115,8 +115,8 @@ def ttest_results():
         for j in range(6):
             t_statistic[i, j], p_value[i, j] = ttest_ind(best_classifier_results[i], best_classifier_results[j])
 
-    headers = ["NoMom50", "Mom50", "NoMom200", "Mom200", "NoMom400", "Mom400"]
-    names_column = numpy.array([["NoMom50"], ["Mom50"], ["NoMom200"], ["Mom200"], ["NoMom400"], ["Mom400"]])
+    headers = ["NoMom50", "Mom50", "NoMom300", "Mom300", "NoMom600", "Mom600"]
+    names_column = numpy.array([["NoMom50"], ["Mom50"], ["NoMom300"], ["Mom300"], ["NoMom600"], ["Mom600"]])
     t_statistic_table = numpy.concatenate((names_column, t_statistic), axis=1)
     t_statistic_table = tabulate(t_statistic_table, headers, floatfmt=".2f")
     p_value_table = numpy.concatenate((names_column, p_value), axis=1)
