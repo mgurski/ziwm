@@ -44,6 +44,48 @@ def get_k_best_features(X, Y, k):
 
     return X[:, indexes[:k]], Y
 
+def initial_learning_rate_test():
+    X, Y = load_data('./dane')
+    X, Y = get_k_best_features(X, Y, 11)
+
+    learning_rate_init_values = [0.005, 0.002, 0.001, 0.0005, 0.0002, 0.0001]
+    momentum_list = [0, 0.9]
+
+    rskf = RepeatedStratifiedKFold(n_splits=2, n_repeats=5, random_state=3232)
+    with open('MPLClassificationInitialLearningRate.csv', mode='w') as csv_file:
+        fieldnames = ['layer_size', 'momentum', 'learning_rate_init', 'number_of_features', 'mean_score', 'std_score']
+        writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
+
+        writer.writeheader()
+
+        for larning_rate_init_id, learning_rate_init in enumerate(learning_rate_init_values):
+            for momentum_id, momentum in enumerate(momentum_list):
+
+                clf = MLPClassifier(hidden_layer_sizes=300, solver='sgd', max_iter=600,
+                                    momentum=momentum, learning_rate_init=learning_rate_init)
+
+                scores = []
+
+                for fold_id, (train_index, test_index) in enumerate(rskf.split(X, Y)):
+                    X_train, X_test = X[train_index], X[test_index]
+                    Y_train, Y_test = Y[train_index], Y[test_index]
+
+                    clf.fit(X_train, Y_train)
+
+                    predict = clf.predict(X_test)
+                    scores.append(accuracy_score(Y_test, predict))
+
+                mean_score = numpy.mean(scores)
+                std_score = numpy.std(scores)
+
+                writer.writerow({'momentum': str(momentum),
+                                'learning_rate_init' : str(learning_rate_init),
+                                'number_of_features': str(11), 'mean_score': str(mean_score),
+                                'std_score': str(std_score)})
+                print(str(momentum) + "      " +
+                      str(learning_rate_init) + "     " + str(11) + "       " +
+                      str(
+                      mean_score) + " +- " + str(std_score))
 
 def experimental_loop():
     X, Y = load_data('./dane')
@@ -66,7 +108,7 @@ def experimental_loop():
                 for momentum_id, momentum in enumerate(momentum_list):
 
                     clf = MLPClassifier(hidden_layer_sizes=layer_size, solver='sgd', max_iter=600,
-                                        momentum=momentum)
+                                        momentum=momentum, learning_rate_init=0.0001)
 
                     scores = []
 
@@ -146,5 +188,6 @@ def save_classifier_results(scores):
         savetxt('results{}.csv'.format(index), scores[index], delimiter=',')
 
 
-experimental_loop()
+#experimental_loop()
+initial_learning_rate_test()
 ttest_results()
