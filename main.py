@@ -108,7 +108,7 @@ def experimental_loop():
                 for momentum_id, momentum in enumerate(momentum_list):
 
                     clf = MLPClassifier(hidden_layer_sizes=layer_size, solver='sgd', max_iter=600,
-                                        momentum=momentum, learning_rate_init=0.0001)
+                                        momentum=momentum)
 
                     scores = []
 
