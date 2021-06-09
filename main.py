@@ -112,7 +112,7 @@ def experimental_loop():
 
                     scores = []
 
-                    for fold_id, (train_index, test_index) in enumerate(rskf.split(X[:, 1:number_of_features], Y)):
+                    for fold_id, (train_index, test_index) in enumerate(rskf.split(X[:, 0:number_of_features], Y)):
                         X_train, X_test = X[train_index], X[test_index]
                         Y_train, Y_test = Y[train_index], Y[test_index]
 
@@ -189,5 +189,5 @@ def save_classifier_results(scores):
 
 
 experimental_loop()
-initial_learning_rate_test()
-ttest_results()
+#initial_learning_rate_test()
+#ttest_results()
