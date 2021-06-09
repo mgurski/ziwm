@@ -52,7 +52,7 @@ def initial_learning_rate_test():
     momentum_list = [0, 0.9]
 
     rskf = RepeatedStratifiedKFold(n_splits=2, n_repeats=5, random_state=3232)
-    with open('MPLClassificationInitialLearningRate.csv', mode='w') as csv_file:
+    with open('wyniki/MPLClassificationInitialLearningRate.csv', mode='w') as csv_file:
         fieldnames = ['layer_size', 'momentum', 'learning_rate_init', 'number_of_features', 'mean_score', 'std_score']
         writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
 
@@ -95,7 +95,7 @@ def experimental_loop():
     momentum_list = [0, 0.9]
 
     rskf = RepeatedStratifiedKFold(n_splits=2, n_repeats=5, random_state=3232)
-    with open('MPLClassification.csv', mode='w') as csv_file:
+    with open('wyniki/MPLClassification.csv', mode='w') as csv_file:
         fieldnames = ['layer_size', 'momentum', 'number_of_features', 'mean_score', 'std_score']
         writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
 
@@ -133,13 +133,13 @@ def experimental_loop():
                     print(str(layer_size) + "      " + str(momentum) + "      " + str(
                         number_of_features) + "       " + str(
                         mean_score) + " +- " + str(std_score))
-    numpy.save('results', result_scores)
+    numpy.save('wyniki', result_scores)
 
 
 def ttest_results():
-    scores = numpy.load('results.npy')
+    scores = numpy.load('wyniki.npy')
     for index in range(6):
-        savetxt('results{}.csv'.format(index), scores[index], delimiter=',')
+        savetxt('wyniki{}.csv'.format(index), scores[index], delimiter=',')
 
     best_classifier_results = numpy.zeros((6, 10))
     for index in range(6):
@@ -185,9 +185,9 @@ def ttest_results():
 
 def save_classifier_results(scores):
     for index in range(6):
-        savetxt('results{}.csv'.format(index), scores[index], delimiter=',')
+        savetxt('wyniki{}.csv'.format(index), scores[index], delimiter=',')
 
 
-#experimental_loop()
+experimental_loop()
 initial_learning_rate_test()
 ttest_results()
